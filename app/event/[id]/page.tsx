@@ -11,6 +11,7 @@ import Image from "next/image";
 import {CalendarDays, MapPin, Ticket, Users} from "lucide-react";
 import EventCard from "@/components/EventCard";
 import {Button} from "@/components/ui/button";
+import JoinQueue from "@/components/JoinQueue";
 
 function EventPage() {
   const {user} = useUser()
@@ -107,11 +108,10 @@ function EventPage() {
                   <EventCard eventId={params.id as Id<"events">} />
 
                   {user ? (
-                    // <JoinQueue
-                    //   eventId={params.id as Id<"events">}
-                    //   userId={user.id}
-                    // />
-                    <div>Hello</div>
+                    <JoinQueue
+                      eventId={params.id as Id<"events">}
+                      userId={user.id as Id<"users">}
+                    />
                   ) : (
                     <SignInButton>
                       <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg">
