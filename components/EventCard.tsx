@@ -9,16 +9,15 @@ import Image from "next/image";
 import {useStorageUrl} from "@/lib/utils";
 import {
   CalendarDays,
-  Check,
-  CircleArrowRight,
   LoaderCircle,
   MapPin,
   PencilIcon,
+  ShieldCheck,
   StarIcon,
   Ticket,
   XCircle
 } from "lucide-react";
-import PurchaseTicket from "@/components/PurchaseTicket";
+import GateTrafficIndicator from "@/components/GateTrafficIndicator";
 
 
 function EventCard({eventId}:{eventId:Id<"events">}) {
@@ -27,14 +26,11 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
   const event = useQuery(api.events.getById, { eventId });
   const availability = useQuery(api.events.getEventAvailability, { eventId });
 
-  const userTicket = useQuery(api.tickets.getUserTicketForEvent,{
+  const userGateEntry = useQuery(api.gateQueue.getUserGateEntry,{
     eventId,
     userId:user?.id ?? ""
   })
-  const queuePosition = useQuery(api.waitingList.getQueuePosition,{
-    eventId,
-    userId:user?.id ?? ""
-  })
+  const gateTraffic = useQuery(api.gateQueue.getGateTraffic,{ eventId })
 
   const imageUrl = useStorageUrl(event?.imageStorageId)
 
@@ -43,47 +39,58 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
   const isEventOwner = user?.id === event?.userId;
 
   const renderQueuePosition =()=>{
-    if (!queuePosition || queuePosition.status !== "waiting") return null;
+    if (!userGateEntry) return null;
 
-    if (availability.purchasedCount >= availability.totalTickets) {
+    if (userGateEntry.status === "verified") {
       return (
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
           <div className="flex items-center">
-            <Ticket className="w-5 h-5 text-gray-400 mr-2" />
-            <span className="text-gray-600">Event is sold out</span>
+            <ShieldCheck className="w-5 h-5 text-green-600 mr-2" />
+            <span className="text-green-700 font-medium">Verified at {userGateEntry.gateName}</span>
           </div>
         </div>
       );
     }
 
-    if (queuePosition.position === 2) {
+    if (userGateEntry.status === "current") {
       return (
-        <div className="flex flex-col lg:flex-row items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+        <div className="flex flex-col lg:flex-row items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
           <div className="flex items-center">
-            <CircleArrowRight className="w-5 h-5 text-amber-500 mr-2" />
-            <span className="text-amber-700 font-medium">
-              You&apos;re next in line! (Queue position:{" "}
-              {queuePosition.position})
+            <div className="relative mr-2">
+              <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping absolute" />
+              <div className="w-2.5 h-2.5 bg-red-500 rounded-full relative" />
+            </div>
+            <span className="text-red-700 font-medium">
+              You&apos;re up at {userGateEntry.gateName}!
             </span>
           </div>
           <div className="flex items-center">
-            <LoaderCircle className="w-4 h-4 mr-1 animate-spin text-amber-500" />
-            <span className="text-amber-600 text-sm">Waiting for ticket</span>
+            <LoaderCircle className="w-4 h-4 mr-1 animate-spin text-red-500" />
+            <span className="text-red-600 text-sm">Verify now</span>
           </div>
         </div>
       );
     }
-    return (
-      <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
-        <div className="flex items-center">
-          <LoaderCircle className="w-4 h-4 mr-2 animate-spin text-blue-500" />
-          <span className="text-blue-700">Queue position</span>
+
+    if (userGateEntry.status === "pending") {
+      return (
+        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+          <div className="flex items-center">
+            <LoaderCircle className="w-4 h-4 mr-2 animate-spin text-blue-500" />
+            <span className="text-blue-700">
+              {userGateEntry.peopleAhead === 0
+                ? "You're next!"
+                : `${userGateEntry.peopleAhead} ahead`}
+            </span>
+          </div>
+          <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium text-sm">
+            {userGateEntry.gateName} • #{userGateEntry.position}
+          </span>
         </div>
-        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
-          #{queuePosition.position}
-        </span>
-      </div>
-    );
+      );
+    }
+
+    return null;
   }
 
   const renderTicketStatus =() =>{
@@ -104,36 +111,27 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
         </div>
       );
     }
-    if (userTicket) {
-      return (
-        <div className="mt-4 flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-          <div className="flex items-center">
-            <Check className="w-5 h-5 text-green-600 mr-2" />
-            <span className="text-green-700 font-medium">
-              You have a ticket!
-            </span>
+    if (userGateEntry) {
+      if (userGateEntry.status === "verified") {
+        return (
+          <div className="mt-4 flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+            <div className="flex items-center">
+              <ShieldCheck className="w-5 h-5 text-green-600 mr-2" />
+              <span className="text-green-700 font-medium">
+                Verified at {userGateEntry.gateName}
+              </span>
+            </div>
           </div>
-          <button
-            onClick={() => router.push(`/tickets/${userTicket._id}`)}
-            className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full font-medium shadow-sm transition-colors duration-200 flex items-center gap-1"
-          >
-            View your ticket
-          </button>
-        </div>
-      );
-    }
-    if (queuePosition) {
+        );
+      }
       return (
         <div className="mt-4">
-          {queuePosition.status === "offered" && (
-            <PurchaseTicket eventId={eventId} />
-          )}
           {renderQueuePosition()}
-          {queuePosition.status === "expired" && (
+          {(userGateEntry.status === "expired" || userGateEntry.status === "released") && (
             <div className="p-3 bg-red-50 rounded-lg border border-red-100">
               <span className="text-red-700 font-medium flex items-center">
                 <XCircle className="w-5 h-5 mr-2" />
-                Offer expired
+                {userGateEntry.status === "expired" ? "Queue spot expired" : "Spot released"}
               </span>
             </div>
           )}
@@ -220,15 +218,14 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
             <span>
               {availability.totalTickets - availability.purchasedCount} /{" "}
               {availability.totalTickets} available
-              {!isPastEvent && availability.activeOffers > 0 && (
-                <span className="text-amber-600 text-sm ml-2">
-                  ({availability.activeOffers}{" "}
-                  {availability.activeOffers === 1 ? "person" : "people"} trying
-                  to buy)
-                </span>
-              )}
             </span>
           </div>
+        {/*  Gate Traffic */}
+          {!isPastEvent && gateTraffic && (
+            <div className="mt-1">
+              <GateTrafficIndicator eventId={eventId} />
+            </div>
+          )}
         </div>
         <p className="mt-4 text-gray-600 text-sm line-clamp-2">
           {event.description}

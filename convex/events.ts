@@ -1,6 +1,6 @@
 import {query,mutation} from "./_generated/server";
 import {v} from "convex/values";
-import {DURATIONS, TICKET_STATUS, WAITING_LIST_STATUS} from "@/convex/constants";
+import {DURATIONS, TICKET_STATUS, WAITING_LIST_STATUS, DEFAULT_GATES} from "@/convex/constants";
 import {internal} from "@/convex/_generated/api";
 
 
@@ -33,6 +33,7 @@ export const create = mutation({
       price: args.price,
       totalTickets: args.totalTickets,
       userId: args.userId,
+      gates: [...DEFAULT_GATES],
     });
     return eventId;
   },
