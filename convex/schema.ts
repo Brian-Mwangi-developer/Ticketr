@@ -12,6 +12,8 @@ export default defineSchema({
     userId: v.string(),
     imageStorageId: v.optional(v.id("_storage")),
     is_cancelled: v.optional(v.boolean()),
+    // Gate names for this event (e.g. ["Gate A", "Gate B", "Gate C"])
+    gates: v.optional(v.array(v.string())),
   }),
   tickets: defineTable({
     eventId: v.id("events"),
@@ -44,6 +46,30 @@ export default defineSchema({
     .index("by_event_status", ["eventId", "status"])
     .index("by_user_event", ["userId", "eventId"])
     .index("by_user", ["userId"]),
+  // Gate queue entries — per-gate queue management
+  gateQueue: defineTable({
+    eventId: v.id("events"),
+    userId: v.string(),
+    gateName: v.string(),
+    status: v.union(
+      v.literal("pending"),    // waiting in line
+      v.literal("current"),    // currently being served / at front
+      v.literal("verified"),   // verified through gate
+      v.literal("expired"),    // didn't verify in time, deallocated
+      v.literal("released")    // user voluntarily released spot
+    ),
+    qrCode: v.string(),           // unique QR token for verification
+    qrUsed: v.boolean(),          // whether QR has been scanned
+    joinedAt: v.number(),
+    expiresAt: v.optional(v.number()), // when the current spot expires (3 min for current, 10 min for pending)
+    verifiedAt: v.optional(v.number()),
+    estimatedWaitMinutes: v.optional(v.number()),
+  })
+    .index("by_event_gate_status", ["eventId", "gateName", "status"])
+    .index("by_event_gate", ["eventId", "gateName"])
+    .index("by_user_event", ["userId", "eventId"])
+    .index("by_user", ["userId"])
+    .index("by_qr", ["qrCode"]),
   users: defineTable({
     name: v.string(),
     email: v.string(),

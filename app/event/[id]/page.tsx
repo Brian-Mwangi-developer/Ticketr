@@ -8,10 +8,11 @@ import {Id} from "@/convex/_generated/dataModel";
 import {useStorageUrl} from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Image from "next/image";
-import {CalendarDays, MapPin, Ticket, Users} from "lucide-react";
+import {CalendarDays, DoorOpen, MapPin, Ticket, Users} from "lucide-react";
 import EventCard from "@/components/EventCard";
 import {Button} from "@/components/ui/button";
 import JoinQueue from "@/components/JoinQueue";
+import GateTrafficIndicator from "@/components/GateTrafficIndicator";
 
 function EventPage() {
   const {user} = useUser()
@@ -93,16 +94,26 @@ function EventPage() {
                 {/* Additional Event Information */}
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                    Event Information
+                    Queue Information
                   </h3>
                   <ul className="space-y-2 text-blue-700">
-                    <li>• Please arrive 30 minutes before the event starts</li>
-                    <li>• Tickets are non-refundable</li>
-                    <li>• Age restriction: 18+</li>
+                    <li>• Select a gate to join the verification queue</li>
+                    <li>• You have 3 minutes to verify when it&apos;s your turn</li>
+                    <li>• Queue spots expire after 10 minutes if inactive</li>
+                    <li>• Each QR code is unique and can only be used once</li>
                   </ul>
                 </div>
+
+                {/* Live Gate Traffic */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <DoorOpen className="w-5 h-5 text-blue-600" />
+                    Live Gate Traffic
+                  </h3>
+                  <GateTrafficIndicator eventId={params.id as Id<"events">} />
                 </div>
-              {/* Right Column - Ticket Purchase Card */}
+                </div>
+              {/* Right Column - Gate Queue Card */}
               <div>
                 <div className="sticky top-8 space-y-4">
                   <EventCard eventId={params.id as Id<"events">} />
@@ -110,12 +121,12 @@ function EventPage() {
                   {user ? (
                     <JoinQueue
                       eventId={params.id as Id<"events">}
-                      userId={user.id as Id<"users">}
+                      userId={user.id}
                     />
                   ) : (
                     <SignInButton>
                       <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg">
-                        Sign in to buy tickets
+                        Sign in to join queue
                       </Button>
                     </SignInButton>
                   )}
