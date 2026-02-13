@@ -1,12 +1,12 @@
 "use client";
 
+import { GateQueueStatus, GateSelector, VerifiedBadge } from "@/components/GateQueue";
+import Spinner from "@/components/Spinner";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
-import Spinner from "@/components/Spinner";
 import { GATE_QUEUE_STATUS } from "@/convex/constants";
+import { useQuery } from "convex/react";
 import { Clock, OctagonXIcon } from "lucide-react";
-import { GateQueueStatus, GateSelector, VerifiedBadge } from "@/components/GateQueue";
 
 function JoinQueue({
   eventId,

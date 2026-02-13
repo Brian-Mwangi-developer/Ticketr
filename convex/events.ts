@@ -1,7 +1,7 @@
-import {query,mutation} from "./_generated/server";
-import {v} from "convex/values";
-import {DURATIONS, TICKET_STATUS, WAITING_LIST_STATUS, DEFAULT_GATES} from "@/convex/constants";
-import {internal} from "@/convex/_generated/api";
+import { internal } from "@/convex/_generated/api";
+import { DEFAULT_GATES, DURATIONS, TICKET_STATUS, WAITING_LIST_STATUS } from "@/convex/constants";
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 
 export const get = query({
