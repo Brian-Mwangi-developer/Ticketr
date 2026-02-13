@@ -1,12 +1,10 @@
 "use client"
-import React from 'react'
-import {Id} from "@/convex/_generated/dataModel"
-import {useUser} from "@clerk/nextjs";
-import {useRouter} from "next/navigation";
-import {useQuery} from "convex/react";
-import {api} from "@/convex/_generated/api";
-import Image from "next/image";
-import {useStorageUrl} from "@/lib/utils";
+import GateTrafficIndicator from "@/components/GateTrafficIndicator";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { useStorageUrl } from "@/lib/utils";
+import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
 import {
   CalendarDays,
   LoaderCircle,
@@ -17,28 +15,29 @@ import {
   Ticket,
   XCircle
 } from "lucide-react";
-import GateTrafficIndicator from "@/components/GateTrafficIndicator";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 
-function EventCard({eventId}:{eventId:Id<"events">}) {
-  const {user} = useUser();
+function EventCard({ eventId }: { eventId: Id<"events"> }) {
+  const { user } = useUser();
   const router = useRouter()
   const event = useQuery(api.events.getById, { eventId });
   const availability = useQuery(api.events.getEventAvailability, { eventId });
 
-  const userGateEntry = useQuery(api.gateQueue.getUserGateEntry,{
+  const userGateEntry = useQuery(api.gateQueue.getUserGateEntry, {
     eventId,
-    userId:user?.id ?? ""
+    userId: user?.id ?? ""
   })
-  const gateTraffic = useQuery(api.gateQueue.getGateTraffic,{ eventId })
+  const gateTraffic = useQuery(api.gateQueue.getGateTraffic, { eventId })
 
   const imageUrl = useStorageUrl(event?.imageStorageId)
 
-  if(!event || !availability) return null
+  if (!event || !availability) return null
   const isPastEvent = event.eventDate < Date.now();
   const isEventOwner = user?.id === event?.userId;
 
-  const renderQueuePosition =()=>{
+  const renderQueuePosition = () => {
     if (!userGateEntry) return null;
 
     if (userGateEntry.status === "verified") {
@@ -93,8 +92,8 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
     return null;
   }
 
-  const renderTicketStatus =() =>{
-    if(!user) return null
+  const renderTicketStatus = () => {
+    if (!user) return null
     if (isEventOwner) {
       return (
         <div className="mt-4">
@@ -143,11 +142,10 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
   return (
     <div
       onClick={() => router.push(`/event/${eventId}`)}
-      className={`bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 cursor-pointer overflow-hidden relative ${
-        isPastEvent ? "opacity-75 hover:opacity-100" : ""
-      }`}
+      className={`bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 cursor-pointer overflow-hidden relative ${isPastEvent ? "opacity-75 hover:opacity-100" : ""
+        }`}
     >
-    {/*  Event Image*/}
+      {/*  Event Image*/}
       {imageUrl && (
         <div className="relative w-full h-48">
           <Image
@@ -159,7 +157,7 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         </div>
-        )}
+      )}
       {/*Event Details*/}
       <div className={`p-6 ${imageUrl ? "relative" : ""}`}>
         <div className="flex justify-between items-start">
@@ -181,30 +179,29 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
             )}
           </div>
         </div>
-      {/*  Price Tag*/}
+        {/*  Price Tag*/}
         <div className="flex flex-col items-end gap-2 ml-4">
           <span
-            className={`px-4 py-1.5 font-semibold rounded-full ${
-              isPastEvent
+            className={`px-4 py-1.5 font-semibold rounded-full ${isPastEvent
                 ? "bg-gray-50 text-gray-500"
                 : "bg-green-50 text-green-700"
-            }`}
+              }`}
           >
-              £{event.price.toFixed(2)}
-            </span>
+            £{event.price.toFixed(2)}
+          </span>
           {availability.purchasedCount >= availability.totalTickets && (
             <span className="px-4 py-1.5 bg-red-50 text-red-700 font-semibold rounded-full text-sm">
-                Sold Out
-              </span>
+              Sold Out
+            </span>
           )}
         </div>
-      {/*  Event Details*/}
+        {/*  Event Details*/}
         <div className="mt-4 space-y-3">
           <div className="flex items-center text-gray-600">
             <MapPin className="w-4 h-4 mr-2" />
             <span>{event.location}</span>
           </div>
-        {/*  Calendar days */}
+          {/*  Calendar days */}
           <div className="flex items-center text-gray-600">
             <CalendarDays className="w-4 h-4 mr-2" />
             <span>
@@ -212,7 +209,7 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
               {isPastEvent && "(Ended)"}
             </span>
           </div>
-        {/*  Ticket*/}
+          {/*  Ticket*/}
           <div className="flex items-center text-gray-600">
             <Ticket className="w-4 h-4 mr-2" />
             <span>
@@ -220,7 +217,7 @@ function EventCard({eventId}:{eventId:Id<"events">}) {
               {availability.totalTickets} available
             </span>
           </div>
-        {/*  Gate Traffic */}
+          {/*  Gate Traffic */}
           {!isPastEvent && gateTraffic && (
             <div className="mt-1">
               <GateTrafficIndicator eventId={eventId} />
