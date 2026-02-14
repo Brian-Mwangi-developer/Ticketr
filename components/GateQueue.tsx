@@ -160,7 +160,7 @@ function GateQueueStatus({
                                 }`}
                         >
                             <QRCodeSVG
-                                value={userEntry.qrCode}
+                                value={`https://ticketr-henna.vercel.app/verify/${encodeURIComponent(userEntry.qrCode)}`}
                                 size={180}
                                 level="H"
                                 includeMargin
@@ -272,17 +272,17 @@ function GateSelector({
 
                     const levelConfig = {
                         empty: {
-                            bg: "bg-green-50 hover:bg-green-100",
-                            border: "border-green-300",
-                            text: "text-green-700",
-                            badge: "bg-green-100 text-green-700",
+                            bg: "bg-gray-50 hover:bg-gray-100",
+                            border: "border-gray-300",
+                            text: "text-gray-700",
+                            badge: "bg-gray-100 text-gray-700",
                             label: "No Wait",
                         },
                         low: {
-                            bg: "bg-green-50 hover:bg-green-100",
-                            border: "border-green-300",
-                            text: "text-green-700",
-                            badge: "bg-green-100 text-green-700",
+                            bg: "bg-gray-50 hover:bg-gray-100",
+                            border: "border-gray-300",
+                            text: "text-gray-700",
+                            badge: "bg-gray-100 text-gray-700",
                             label: "Short Wait",
                         },
                         moderate: {
@@ -343,7 +343,7 @@ function GateSelector({
             {/* Legend */}
             <div className="flex items-center justify-center gap-4 text-xs text-gray-400 pt-2">
                 <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-green-400" />
+                    <div className="w-2 h-2 rounded-full bg-gray-400" />
                     <span>Low</span>
                 </div>
                 <div className="flex items-center gap-1">

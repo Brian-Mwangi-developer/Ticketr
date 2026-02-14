@@ -24,8 +24,20 @@ export const create = mutation({
     totalTickets: v.number(),
     userId: v.string(),
     imageUrl: v.optional(v.string()), // Vercel Blob image URL
+    gateCount: v.optional(v.number()), // Number of gates
   },
   handler: async (ctx, args) => {
+    // Generate gate names based on gateCount (default to DEFAULT_GATES)
+    const count = args.gateCount ?? DEFAULT_GATES.length;
+    const gates: string[] = [];
+    for (let i = 0; i < count; i++) {
+      // Gate A, Gate B, ... Gate Z, Gate AA, etc.
+      const letter = i < 26
+        ? String.fromCharCode(65 + i)
+        : String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
+      gates.push(`Gate ${letter}`);
+    }
+
     const eventId = await ctx.db.insert("events", {
       name: args.name,
       description: args.description,
@@ -35,7 +47,8 @@ export const create = mutation({
       totalTickets: args.totalTickets,
       userId: args.userId,
       imageUrl: args.imageUrl,
-      gates: [...DEFAULT_GATES],
+      gates,
+      gateCount: count,
     });
     return eventId;
   },

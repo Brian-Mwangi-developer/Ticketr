@@ -2,7 +2,7 @@
 import GateTrafficIndicator from "@/components/GateTrafficIndicator";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useStorageUrl } from "@/lib/utils";
+import { useStorageUrl, isEventPast } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import {
@@ -36,7 +36,7 @@ function EventCard({ eventId }: { eventId: Id<"events"> }) {
   const displayImageUrl = event?.imageUrl || imageUrl;
 
   if (!event || !availability) return null
-  const isPastEvent = event.eventDate < Date.now();
+  const isPastEvent = isEventPast(event.eventDate);
   const isEventOwner = user?.id === event?.userId;
 
   const renderQueuePosition = () => {
@@ -219,8 +219,12 @@ function EventCard({ eventId }: { eventId: Id<"events"> }) {
               {availability.totalTickets} available
             </span>
           </div>
-          {/*  Gate Traffic */}
-          {!isPastEvent && gateTraffic && (
+          {/*  Gate Traffic — only show on event day */}
+          {!isPastEvent && gateTraffic && (() => {
+            const eventDay = new Date(event.eventDate).toDateString();
+            const today = new Date().toDateString();
+            return eventDay === today;
+          })() && (
             <div className="mt-1">
               <GateTrafficIndicator eventId={eventId} />
             </div>

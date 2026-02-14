@@ -8,11 +8,12 @@ import {Id} from "@/convex/_generated/dataModel";
 import {useStorageUrl} from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Image from "next/image";
-import {CalendarDays, DoorOpen, MapPin, Ticket, Users} from "lucide-react";
+import {CalendarDays, DoorOpen, MapPin, Ticket, Users, BarChart3} from "lucide-react";
 import EventCard from "@/components/EventCard";
 import {Button} from "@/components/ui/button";
 import JoinQueue from "@/components/JoinQueue";
 import GateTrafficIndicator from "@/components/GateTrafficIndicator";
+import Link from "next/link";
 
 function EventPage() {
   const {user} = useUser()
@@ -93,6 +94,19 @@ function EventPage() {
                     </p>
                   </div>
                 </div>
+                {/* Owner Actions */}
+                {user && user.id === event.userId && (
+                  <Link href={`/seller/events/${event._id}/metrics`}>
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-center gap-3 hover:bg-indigo-100 transition-colors cursor-pointer">
+                      <BarChart3 className="w-5 h-5 text-indigo-600" />
+                      <div>
+                        <p className="font-semibold text-indigo-900">View Event Metrics</p>
+                        <p className="text-sm text-indigo-600">See gate traffic, entries, and flow analytics</p>
+                      </div>
+                    </div>
+                  </Link>
+                )}
+
                 {/* Additional Event Information */}
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-blue-900 mb-2">
@@ -106,7 +120,12 @@ function EventPage() {
                   </ul>
                 </div>
 
-                {/* Live Gate Traffic */}
+                {/* Live Gate Traffic — only show on event day */}
+                {(() => {
+                  const eventDay = new Date(event.eventDate).toDateString();
+                  const today = new Date().toDateString();
+                  return eventDay === today;
+                })() && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <DoorOpen className="w-5 h-5 text-blue-600" />
@@ -114,6 +133,7 @@ function EventPage() {
                   </h3>
                   <GateTrafficIndicator eventId={params.id as Id<"events">} />
                 </div>
+                )}
                 </div>
               {/* Right Column - Gate Queue Card */}
               <div>

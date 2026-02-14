@@ -10,10 +10,11 @@ import {
   Plus,
   Ticket,
   ImageIcon,
+  BarChart3,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useStorageUrl } from "@/lib/utils";
+import { useStorageUrl, isEventPast } from "@/lib/utils";
 import Spinner from "./Spinner";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -83,8 +84,8 @@ export default function SellerEventList() {
     );
   }
 
-  const upcomingEvents = events.filter((e) => e.eventDate > Date.now());
-  const pastEvents = events.filter((e) => e.eventDate <= Date.now());
+  const upcomingEvents = events.filter((e) => !isEventPast(e.eventDate));
+  const pastEvents = events.filter((e) => isEventPast(e.eventDate));
 
   return (
     <div className="space-y-8">
@@ -149,6 +150,14 @@ export default function SellerEventList() {
                     >
                       <Edit className="w-3 h-3" />
                       Edit
+                    </Link>
+                    <Link
+                      href={`/seller/events/${event._id}/metrics`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors"
+                    >
+                      <BarChart3 className="w-3 h-3" />
+                      Metrics
                     </Link>
                   </div>
                 </div>

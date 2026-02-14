@@ -145,6 +145,18 @@ export const joinGateQueue = mutation({
             throw new Error("You already have an active queue entry for this event");
         }
 
+        // Check if user already has a valid/used ticket for this event
+        const existingTicket = await ctx.db
+            .query("tickets")
+            .withIndex("by_user_event", (q) =>
+                q.eq("userId", userId).eq("eventId", eventId)
+            )
+            .first();
+
+        if (existingTicket && (existingTicket.status === "valid" || existingTicket.status === "used")) {
+            throw new Error("You already have a ticket for this event");
+        }
+
         // Verify the event exists
         const event = await ctx.db.get(eventId);
         if (!event) throw new Error("Event not found");
@@ -221,8 +233,11 @@ export const joinGateQueue = mutation({
 export const verifyQRCode = mutation({
     args: {
         qrCode: v.string(),
+        verifierUserId: v.optional(v.string()), // the logged-in user scanning
+        verifierName: v.optional(v.string()),
+        verifierEmail: v.optional(v.string()),
     },
-    handler: async (ctx, { qrCode }) => {
+    handler: async (ctx, { qrCode, verifierUserId, verifierName, verifierEmail }) => {
         const entry = await ctx.db
             .query("gateQueue")
             .withIndex("by_qr", (q) => q.eq("qrCode", qrCode))
@@ -248,12 +263,32 @@ export const verifyQRCode = mutation({
             return { success: false, message: "Already verified" };
         }
 
+        const now = Date.now();
+
         // Mark as verified
         await ctx.db.patch(entry._id, {
             status: GATE_QUEUE_STATUS.VERIFIED,
             qrUsed: true,
-            verifiedAt: Date.now(),
+            verifiedAt: now,
         });
+
+        // Get the event to find the owner
+        const event = await ctx.db.get(entry.eventId);
+
+        // Store metric entry
+        if (event) {
+            await ctx.db.insert("eventMetrics", {
+                eventId: entry.eventId,
+                eventOwnerId: event.userId,
+                userId: entry.userId,
+                userName: verifierName,
+                userEmail: verifierEmail,
+                gateName: entry.gateName,
+                verifiedAt: now,
+                qrCode: entry.qrCode,
+                gateQueueEntryId: entry._id,
+            });
+        }
 
         // Promote next person in line for this gate
         await promoteNextInGate(ctx, entry.eventId, entry.gateName);
@@ -262,6 +297,7 @@ export const verifyQRCode = mutation({
             success: true,
             message: "Verified successfully! Welcome through the gate.",
             gateName: entry.gateName,
+            eventName: event?.name,
         };
     },
 });

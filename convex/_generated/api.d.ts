@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as constants from "../constants.js";
+import type * as eventMetrics from "../eventMetrics.js";
 import type * as events from "../events.js";
 import type * as gateQueue from "../gateQueue.js";
 import type * as storage from "../storage.js";
@@ -31,6 +32,7 @@ import type * as waitingList from "../waitingList.js";
  */
 declare const fullApi: ApiFromModules<{
   constants: typeof constants;
+  eventMetrics: typeof eventMetrics;
   events: typeof events;
   gateQueue: typeof gateQueue;
   storage: typeof storage;

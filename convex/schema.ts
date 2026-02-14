@@ -15,6 +15,7 @@ export default defineSchema({
     is_cancelled: v.optional(v.boolean()),
     // Gate names for this event (e.g. ["Gate A", "Gate B", "Gate C"])
     gates: v.optional(v.array(v.string())),
+    gateCount: v.optional(v.number()), // Number of gates chosen by seller
   })
     .index("by_user", ["userId"]),
   tickets: defineTable({
@@ -72,6 +73,22 @@ export default defineSchema({
     .index("by_user_event", ["userId", "eventId"])
     .index("by_user", ["userId"])
     .index("by_qr", ["qrCode"]),
+  // Event metrics — stores each gate verification entry for analytics
+  eventMetrics: defineTable({
+    eventId: v.id("events"),
+    eventOwnerId: v.string(),       // seller userId for quick owner queries
+    userId: v.string(),             // the user who was verified
+    userName: v.optional(v.string()),
+    userEmail: v.optional(v.string()),
+    gateName: v.string(),
+    verifiedAt: v.number(),
+    qrCode: v.string(),
+    gateQueueEntryId: v.id("gateQueue"),
+  })
+    .index("by_event", ["eventId"])
+    .index("by_event_gate", ["eventId", "gateName"])
+    .index("by_event_owner", ["eventOwnerId"])
+    .index("by_event_time", ["eventId", "verifiedAt"]),
   users: defineTable({
     name: v.string(),
     email: v.string(),

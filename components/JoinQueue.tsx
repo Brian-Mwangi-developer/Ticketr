@@ -6,7 +6,8 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { GATE_QUEUE_STATUS } from "@/convex/constants";
 import { useQuery } from "convex/react";
-import { Clock, OctagonXIcon } from "lucide-react";
+import { Clock, OctagonXIcon, Ticket } from "lucide-react";
+import { isEventPast } from "@/lib/utils";
 
 function JoinQueue({
   eventId,
@@ -20,14 +21,23 @@ function JoinQueue({
     userId,
   });
   const event = useQuery(api.events.getById, { eventId });
+  const existingTicket = useQuery(api.tickets.getUserTicketForEvent, {
+    eventId,
+    userId,
+  });
 
   const isEventOwner = userId === event?.userId;
 
-  if (userGateEntry === undefined || !event) {
+  if (userGateEntry === undefined || !event || existingTicket === undefined) {
     return <Spinner />;
   }
 
-  const isPastEvent = event.eventDate < Date.now();
+  const isPastEvent = isEventPast(event.eventDate);
+
+  // Check if user already has a valid/used ticket
+  const hasValidTicket =
+    existingTicket &&
+    (existingTicket.status === "valid" || existingTicket.status === "used");
 
   // Check if user has a verified entry (check all entries, not just active)
   const isVerified = userGateEntry?.status === GATE_QUEUE_STATUS.VERIFIED;
@@ -50,6 +60,11 @@ function JoinQueue({
         <div className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed">
           <Clock className="w-5 h-5" />
           <span>Event has ended</span>
+        </div>
+      ) : hasValidTicket ? (
+        <div className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
+          <Ticket className="w-5 h-5" />
+          <span className="font-medium">You already have a ticket for this event</span>
         </div>
       ) : isVerified ? (
         <VerifiedBadge gateName={userGateEntry.gateName} />

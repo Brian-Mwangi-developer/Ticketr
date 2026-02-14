@@ -37,6 +37,7 @@ const formSchema = z.object({
     ),
   price: z.number().min(0, "Price must be 0 or greater"),
   totalTickets: z.number().min(1, "Must have at least 1 ticket"),
+  gateCount: z.number().min(1, "Must have at least 1 gate").max(26, "Maximum 26 gates"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -93,6 +94,7 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
       eventDate: initialData ? new Date(initialData.eventDate) : new Date(),
       price: initialData?.price ?? 0,
       totalTickets: initialData?.totalTickets ?? 1,
+      gateCount: initialData ? (initialData as any).gateCount ?? 4 : 4,
     },
   });
 
@@ -167,6 +169,7 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
                 ...values,
                 userId: user.id,
                 eventDate: values.eventDate.getTime(),
+                gateCount: values.gateCount,
               });
               if (storageId) {
                 await updateEventImage({
@@ -196,6 +199,7 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
             userId: user.id,
             eventDate: values.eventDate.getTime(),
             imageUrl: uploadedImageUrl ?? undefined,
+            gateCount: values.gateCount,
           });
 
           toast.success("Event created!", {
@@ -370,6 +374,35 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
               </FormItem>
             )}
           />
+
+          {/* Image Upload */}
+          <div className="space-y-2">
+
+          {/* Gate Count */}
+          <FormField
+            control={form.control}
+            name="gateCount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Gates</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={26}
+                    placeholder="e.g. 4"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <p className="text-xs text-gray-500">
+                  Gates will be named Gate A, Gate B, Gate C, etc.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          </div>
 
           {/* Image Upload */}
           <div className="space-y-2">
