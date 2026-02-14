@@ -11,10 +11,12 @@ export default defineSchema({
     totalTickets: v.number(),
     userId: v.string(),
     imageStorageId: v.optional(v.id("_storage")),
+    imageUrl: v.optional(v.string()), // Vercel Blob image URL
     is_cancelled: v.optional(v.boolean()),
     // Gate names for this event (e.g. ["Gate A", "Gate B", "Gate C"])
     gates: v.optional(v.array(v.string())),
-  }),
+  })
+    .index("by_user", ["userId"]),
   tickets: defineTable({
     eventId: v.id("events"),
     userId: v.string(),

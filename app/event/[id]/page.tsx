@@ -20,6 +20,8 @@ function EventPage() {
   const event = useQuery(api.events.getById,{eventId:params.id as Id<"events">})
   const availability = useQuery(api.events.getEventAvailability,{eventId:params.id as Id<"events">})
   const imageUrl = useStorageUrl(event?.imageStorageId)
+  // Use Vercel Blob imageUrl if available, otherwise fall back to Convex storage
+  const displayImageUrl = event?.imageUrl || imageUrl
 
   if(!event || !availability){
     return(
@@ -34,10 +36,10 @@ function EventPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {/*  Event Image*/}
-          {imageUrl && (
+          {displayImageUrl && (
             <div className="aspect-[21/9] relative w-full">
               <Image
-                src={imageUrl}
+                src={displayImageUrl}
                 alt={event.name}
                 fill
                 className="object-cover"

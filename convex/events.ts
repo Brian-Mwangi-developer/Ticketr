@@ -23,6 +23,7 @@ export const create = mutation({
     price: v.number(),
     totalTickets: v.number(),
     userId: v.string(),
+    imageUrl: v.optional(v.string()), // Vercel Blob image URL
   },
   handler: async (ctx, args) => {
     const eventId = await ctx.db.insert("events", {
@@ -33,6 +34,7 @@ export const create = mutation({
       price: args.price,
       totalTickets: args.totalTickets,
       userId: args.userId,
+      imageUrl: args.imageUrl,
       gates: [...DEFAULT_GATES],
     });
     return eventId;
@@ -44,6 +46,18 @@ export const getById = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, { eventId }) => {
     return await ctx.db.get(eventId);
+  },
+});
+
+// Get events created by a specific seller
+export const getSellerEvents = query({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) => {
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    return events.sort((a, b) => b.eventDate - a.eventDate);
   },
 });
 

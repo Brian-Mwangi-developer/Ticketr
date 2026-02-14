@@ -32,6 +32,8 @@ function EventCard({ eventId }: { eventId: Id<"events"> }) {
   const gateTraffic = useQuery(api.gateQueue.getGateTraffic, { eventId })
 
   const imageUrl = useStorageUrl(event?.imageStorageId)
+  // Use Vercel Blob imageUrl if available, otherwise fall back to Convex storage
+  const displayImageUrl = event?.imageUrl || imageUrl;
 
   if (!event || !availability) return null
   const isPastEvent = event.eventDate < Date.now();
@@ -146,10 +148,10 @@ function EventCard({ eventId }: { eventId: Id<"events"> }) {
         }`}
     >
       {/*  Event Image*/}
-      {imageUrl && (
+      {displayImageUrl && (
         <div className="relative w-full h-48">
           <Image
-            src={imageUrl}
+            src={displayImageUrl}
             alt={event.name}
             fill
             className="object-cover"
@@ -159,7 +161,7 @@ function EventCard({ eventId }: { eventId: Id<"events"> }) {
         </div>
       )}
       {/*Event Details*/}
-      <div className={`p-6 ${imageUrl ? "relative" : ""}`}>
+      <div className={`p-6 ${displayImageUrl ? "relative" : ""}`}>
         <div className="flex justify-between items-start">
           {/*Event Name and Owner Badge*/}
           <div>

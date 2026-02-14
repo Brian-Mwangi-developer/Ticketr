@@ -21,8 +21,8 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { Id } from "@/convex/_generated/dataModel";
-import { Loader2 } from "lucide-react";
-import {toast} from 'sonner';
+import { Loader2, Upload, X } from "lucide-react";
+import { toast } from "sonner";
 import { useStorageUrl } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -50,6 +50,7 @@ interface InitialEventData {
   price: number;
   totalTickets: number;
   imageStorageId?: Id<"_storage">;
+  imageUrl?: string;
 }
 
 interface EventFormProps {
@@ -72,8 +73,16 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const updateEventImage = useMutation(api.storage.updateEventImage);
   const deleteImage = useMutation(api.storage.deleteImage);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [removedCurrentImage, setRemovedCurrentImage] = useState(false);
+
+  // Determine the display image: preview > initialData.imageUrl > Convex storage URL
+  const displayImageUrl =
+    imagePreview ||
+    (!removedCurrentImage
+      ? initialData?.imageUrl || currentImageUrl
+      : null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -87,84 +96,43 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
     },
   });
 
-  async function onSubmit(values: FormData) {
-    if (!user?.id) return;
+  /** Upload image to Vercel Blob via our API route */
+  async function uploadToVercelBlob(
+    file: File
+  ): Promise<string | null> {
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    startTransition(async () => {
-      try {
-        let imageStorageId = null;
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
 
-        // Handle image changes
-        if (selectedImage) {
-          // Upload new image
-          imageStorageId = await handleImageUpload(selectedImage);
-        }
-
-        // Handle image deletion/update in edit mode
-        if (mode === "edit" && initialData?.imageStorageId) {
-          if (removedCurrentImage || selectedImage) {
-            // Delete old image from storage
-            await deleteImage({
-              storageId: initialData.imageStorageId,
-            });
-          }
-        }
-
-        if (mode === "create") {
-          const eventId = await createEvent({
-            ...values,
-            userId: user.id,
-            eventDate: values.eventDate.getTime(),
-          });
-
-          if (imageStorageId) {
-            await updateEventImage({
-              eventId,
-              storageId: imageStorageId as Id<"_storage">,
-            });
-          }
-
-          router.push(`/event/${eventId}`);
-        } else {
-          // Ensure initialData exists before proceeding with update
-          if (!initialData) {
-            throw new Error("Initial event data is required for updates");
-          }
-
-          // Update event details
-          await updateEvent({
-            eventId: initialData._id,
-            ...values,
-            eventDate: values.eventDate.getTime(),
-          });
-
-          // Update image - this will now handle both adding new image and removing existing image
-          if (imageStorageId || removedCurrentImage) {
-            await updateEventImage({
-              eventId: initialData._id,
-              // If we have a new image, use its ID, otherwise if we're removing the image, pass null
-              storageId: imageStorageId
-                ? (imageStorageId as Id<"_storage">)
-                : null,
-            });
-          }
-
-          toast.success("Event updated",{
-            description: "Your event has been successfully updated.",
-          });
-
-          router.push(`/event/${initialData._id}`);
-        }
-      } catch (error) {
-        console.error("Failed to handle event:", error);
-        toast.error("Uh oh! Something went wrong.",{
-          description: "There was a problem with your request.",
-        });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Upload failed");
       }
-    });
+
+      const { url } = await response.json();
+      return url as string;
+    } catch (error) {
+      console.error("Failed to upload image to Vercel Blob:", error);
+      toast.error("Image upload failed", {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
   }
 
-  async function handleImageUpload(file: File): Promise<string | null> {
+  /** Fallback: upload to Convex storage */
+  async function handleConvexImageUpload(
+    file: File
+  ): Promise<string | null> {
     try {
       const postUrl = await generateUploadUrl();
       const result = await fetch(postUrl, {
@@ -178,6 +146,97 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
       console.error("Failed to upload image:", error);
       return null;
     }
+  }
+
+  async function onSubmit(values: FormData) {
+    if (!user?.id) return;
+
+    startTransition(async () => {
+      try {
+        let uploadedImageUrl: string | null = null;
+
+        // Upload new image to Vercel Blob if selected
+        if (selectedImage) {
+          uploadedImageUrl = await uploadToVercelBlob(selectedImage);
+
+          // If Vercel Blob fails, fallback to Convex storage
+          if (!uploadedImageUrl) {
+            const storageId = await handleConvexImageUpload(selectedImage);
+            if (mode === "create") {
+              const eventId = await createEvent({
+                ...values,
+                userId: user.id,
+                eventDate: values.eventDate.getTime(),
+              });
+              if (storageId) {
+                await updateEventImage({
+                  eventId,
+                  storageId: storageId as Id<"_storage">,
+                });
+              }
+              toast.success("Event created!", {
+                description: "Your event has been successfully created.",
+              });
+              router.push(`/event/${eventId}`);
+              return;
+            }
+          }
+        }
+
+        // Handle image deletion in edit mode
+        if (mode === "edit" && initialData?.imageStorageId) {
+          if (removedCurrentImage || selectedImage) {
+            await deleteImage({ storageId: initialData.imageStorageId });
+          }
+        }
+
+        if (mode === "create") {
+          const eventId = await createEvent({
+            ...values,
+            userId: user.id,
+            eventDate: values.eventDate.getTime(),
+            imageUrl: uploadedImageUrl ?? undefined,
+          });
+
+          toast.success("Event created!", {
+            description: "Your event has been successfully created.",
+          });
+          router.push(`/event/${eventId}`);
+        } else {
+          if (!initialData) {
+            throw new Error("Initial event data is required for updates");
+          }
+
+          await updateEvent({
+            eventId: initialData._id,
+            ...values,
+            eventDate: values.eventDate.getTime(),
+          });
+
+          // Handle image update for edit mode
+          if (uploadedImageUrl || removedCurrentImage) {
+            // If we have a new Vercel Blob URL, we could store it via a separate mutation.
+            // For now, update the Convex imageStorageId to null if removed
+            if (removedCurrentImage && !uploadedImageUrl) {
+              await updateEventImage({
+                eventId: initialData._id,
+                storageId: null,
+              });
+            }
+          }
+
+          toast.success("Event updated", {
+            description: "Your event has been successfully updated.",
+          });
+          router.push(`/event/${initialData._id}`);
+        }
+      } catch (error) {
+        console.error("Failed to handle event:", error);
+        toast.error("Uh oh! Something went wrong.", {
+          description: "There was a problem with your request.",
+        });
+      }
+    });
   }
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,7 +263,7 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
               <FormItem>
                 <FormLabel>Event Name</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input placeholder="e.g. Summer Music Festival" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -218,7 +277,11 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
               <FormItem>
                 <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea {...field} />
+                  <Textarea
+                    placeholder="Describe your event..."
+                    className="min-h-[100px]"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -232,7 +295,7 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
               <FormItem>
                 <FormLabel>Location</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input placeholder="e.g. London, UK" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -309,19 +372,22 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
           />
 
           {/* Image Upload */}
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Event Image
+          <div className="space-y-2">
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Event Image{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
             </label>
-            <div className="mt-1 flex items-center gap-4">
-              {imagePreview || (!removedCurrentImage && currentImageUrl) ? (
-                <div className="relative w-32 aspect-square bg-gray-100 rounded-lg">
-                  <Image
-                    src={imagePreview || currentImageUrl!}
-                    alt="Preview"
-                    fill
-                    className="object-contain rounded-lg"
-                  />
+            <div className="mt-1">
+              {displayImageUrl ? (
+                <div className="relative w-full max-w-xs">
+                  <div className="relative w-full aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                    <Image
+                      src={displayImageUrl}
+                      alt="Preview"
+                      fill
+                      className="object-cover rounded-lg"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -332,24 +398,31 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
                         imageInput.current.value = "";
                       }
                     }}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm"
                   >
-                    ×
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  ref={imageInput}
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100"
-                />
+                <div
+                  onClick={() => imageInput.current?.click()}
+                  className="flex flex-col items-center justify-center w-full max-w-xs aspect-video border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+                >
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500">
+                    Click to upload an image
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    JPEG, PNG, WebP, GIF (max 5MB)
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleImageChange}
+                    ref={imageInput}
+                    className="hidden"
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -357,13 +430,17 @@ export default function EventForm({ mode, initialData }: EventFormProps) {
 
         <Button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || isUploading}
           className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
         >
-          {isPending ? (
+          {isPending || isUploading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              {mode === "create" ? "Creating Event..." : "Updating Event..."}
+              {isUploading
+                ? "Uploading image..."
+                : mode === "create"
+                  ? "Creating Event..."
+                  : "Updating Event..."}
             </>
           ) : mode === "create" ? (
             "Create Event"

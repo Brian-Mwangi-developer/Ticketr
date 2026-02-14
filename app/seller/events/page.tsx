@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-// import SellerEventList from "@/components/SellerEventList";
+import SellerEventList from "@/components/SellerEventList";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
 
@@ -40,7 +40,7 @@ export default async function SellerEventsPage() {
 
         {/* Event List */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          {/*<SellerEventList />*/}
+          <SellerEventList />
         </div>
       </div>
     </div>
