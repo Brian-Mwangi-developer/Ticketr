@@ -118,7 +118,7 @@ export default function SellerEventList() {
                       {event.name}
                     </h4>
                     <span className="text-sm font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full shrink-0 ml-2">
-                      £{event.price.toFixed(2)}
+                      Ksh{event.price.toFixed(2)}
                     </span>
                   </div>
                   <div className="mt-2 space-y-1 text-sm text-gray-500">
