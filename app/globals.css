@@ -44,7 +44,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -68,14 +68,6 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
@@ -94,22 +86,9 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
@@ -117,22 +96,70 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased transition-colors duration-300;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
-/* Custom animation for gate queue pulsing */
+@layer components {
+  /* Precision alignment for the Range Input */
+  input[type='range'] {
+    @apply w-full bg-transparent cursor-pointer appearance-none;
+    height: 32px; /* Container height */
+    display: flex;
+    align-items: center;
+  }
+
+  /* The Track (The Line) */
+  input[type='range']::-webkit-slider-runnable-track {
+    @apply bg-muted rounded-full;
+    height: 6px; 
+    width: 100%;
+  }
+
+  /* The Thumb (The Circle) - Fixed Centering Logic */
+  input[type='range']::-webkit-slider-thumb {
+    appearance: none;
+    height: 22px;
+    width: 22px;
+    background: #007aff; /* Standard iOS Blue */
+    border: 3px solid var(--card); /* Adapts border to card bg in light/dark */
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    
+    /* Vertical Centering: (TrackHeight / 2) - (ThumbHeight / 2) */
+    /* (6 / 2) - (22 / 2) = 3 - 11 = -8px */
+    margin-top: -8px; 
+    
+    @apply transition-transform active:scale-90;
+  }
+
+  /* Firefox Support */
+  input[type='range']::-moz-range-track {
+    @apply bg-muted rounded-full;
+    height: 6px;
+  }
+  
+  input[type='range']::-moz-range-thumb {
+    height: 22px;
+    width: 22px;
+    background: #007aff;
+    border: 3px solid var(--card);
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Custom UI Animations */
 @keyframes pulse-slow {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
-  }
-  50% {
-    opacity: 0.92;
-    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.98); }
 }
 
 .animate-pulse-slow {
-  animation: pulse-slow 2s ease-in-out infinite;
+  animation: pulse-slow 3s ease-in-out infinite;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
